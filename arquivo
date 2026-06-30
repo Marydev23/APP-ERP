@@ -27,3 +27,9 @@ mensagem de retorno : nothing to commit, working tree clean
 BANCO DE DADOS 
 
 OPEN DATAbase
+
+
+npx cap open android  
+
+npm run build
+npm run dev -- --host
