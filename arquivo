@@ -33,3 +33,74 @@ npx cap open android
 
 npm run build
 npm run dev -- --host
+
+
+APK (cliente no celular)
+        ↓
+API ONLINE (Flask na internet)
+        ↓
+BANCO DE DADOS ONLINE
+
+
+
+próximo passo (eu recomendo)
+
+Se quiser fazer do jeito certo sem erro:
+
+Eu posso te guiar em 3 etapas:
+
+1. Colocar seu Flask online (sem quebrar nada)
+2. Migrar SQLite → PostgreSQL
+3. Conectar APK no backend real
+
+
+git add .
+git commit -m "..." (se houver alterações)
+git push origin main
+
+A partir de agora, sempre que for trabalhar no backend, ative o ambiente primeiro:
+
+venv\Scripts\activate
+
+Backend/
+│
+├── app.py
+├── config.py
+├── extensions.py
+├── .env
+├── requirements.txt
+│
+├── database/
+│   ├── __init__.py
+│   └── database.py
+│
+├── models/
+│   ├── __init__.py
+│   ├── usuario.py
+│   ├── empresa.py
+│   ├── funcionario.py
+│   ├── categoria.py
+│   ├── receita.py
+│   ├── despesa.py
+│   ├── produto.py
+│   ├── orcamento.py
+│   └── item_orcamento.py
+│
+├── routes/
+│   ├── __init__.py
+│   ├── auth.py
+│   ├── usuarios.py
+│   ├── empresa.py
+│   ├── funcionarios.py
+│   ├── categorias.py
+│   ├── receitas.py
+│   ├── despesas.py
+│   ├── produtos.py
+│   └── orcamentos.py
+│
+├── services/
+├── repositories/
+├── utils/
+├── uploads/
+├── migrations/
+└── logs/

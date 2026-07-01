@@ -1,12 +1,12 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Login from "./paginas/Login";
-import Layout from "./Layout/Layout";
-import Dashboard from "./paginas/Dashboard";
-import Despesas from "./paginas/Despesas";
-import Receitas from "./paginas/Receitas";
-import Funcionarios from "./paginas/Funcionarios";
-import Configuracao from "./paginas/configuracao/Configuracao";
-import Orcamento from "./paginas/Orcamento";
+import Login from "./pages/Login";
+import Layout from "./Layouts/Layout";
+import Dashboard from "./pages/Dashboard";
+import Despesas from "./pages/Despesas";
+import Receitas from "./pages/Receitas";
+import Funcionarios from "./pages/Funcionarios";
+import Configuracao from "./pages/configuracao/Configuracao";
+import Orcamento from "./pages/Orcamento";
 
 function App() {
   return (
