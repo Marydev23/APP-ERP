@@ -1,0 +1,48 @@
+# Ambiente virtual
+venv/
+.venv/
+
+# Variáveis de ambiente
+.env
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+# Banco SQLite (caso exista)
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Arquivos de cobertura de testes
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Build do React/Vite
+dist/
+node_modules/
+
+# Arquivos temporários
+*.tmp
+*.swp
+
+# Flask
+instance/
+
+# Migrations compiladas (mantém apenas o código fonte)
+migrations/__pycache__/
