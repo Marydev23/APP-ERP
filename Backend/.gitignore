@@ -5,6 +5,30 @@ venv/
 # Variáveis de ambiente
 .env
 
+
+# Node
+node_modules/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Ambiente
+.env
+
+# Banco SQLite
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+
 # Cache do Python
 __pycache__/
 *.py[cod]
