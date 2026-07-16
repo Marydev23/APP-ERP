@@ -12,6 +12,9 @@ CORS(app)
 db.init_app(app)
 migrate.init_app(app, db)
 
+# Carrega todos os models
+import models
+
 
 @app.route("/")
 def home():

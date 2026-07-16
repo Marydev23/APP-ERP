@@ -1,0 +1,161 @@
+Resumo técnico — Backend ERP SaaS
+
+
+Agora o projeto está sendo estruturado para funcionar como um ERP SaaS multiempresa.
+
+ERP
+├── Empresa A
+│   ├── usuários
+│   ├── clientes
+│   ├── vendas
+│   └── financeiro
+│
+└── Empresa B
+    ├── usuários
+    ├── clientes
+    ├── vendas
+    └── financeiro 
+
+Estrutura atual:
+
+
+EMPRESA
+   |
+   ├── Usuários
+   ├── Funcionários
+   ├── Clientes
+   ├── Produtos
+   │       |
+   │       └── Categorias
+   │
+   ├── Orçamentos
+   │       |
+   │       └── Itens do orçamento
+   │                    |
+   │                    └── Produtos
+   │
+   ├── Vendas
+   │       |
+   │       └── Itens da venda
+   │                    |
+   │                    └── Produtos
+   │
+   └── Financeiro
+           |
+           ├── Receitas
+           └── Despesas
+
+                           ┌──────────────┐
+                           │   EMPRESA    │
+                           │ empresa_id   │
+                           └──────┬───────┘
+                                  │ 1:N
+          ┌───────────────────────┼────────────────────────┐
+          │                       │                        │
+          ▼                       ▼                        ▼
+
+ ┌────────────────┐      ┌────────────────┐       ┌────────────────┐
+ │   USUARIO      │      │  FUNCIONARIO   │       │   CLIENTE      │
+ │ usuario_id     │      │ funcionario_id │       │ cliente_id     │
+ │ empresa_id FK  │      │ empresa_id FK │       │ empresa_id FK  │
+ └────────────────┘      └────────────────┘       └───────┬────────┘
+                                                          │
+                                                          │ 1:N
+                                                          ▼
+
+                                               ┌────────────────┐
+                                               │   ORÇAMENTO    │
+                                               │ orcamento_id   │
+                                               │ cliente_id FK  │
+                                               │ empresa_id FK  │
+                                               └───────┬────────┘
+                                                       │
+                                                       │ 1:N
+                                                       ▼
+
+                                            ┌────────────────────┐
+                                            │ ITEM_ORCAMENTO     │
+                                            │ item_id            │
+                                            │ orcamento_id FK    │
+                                            │ produto_id FK      │
+                                            │ quantidade         │
+                                            └────────┬───────────┘
+                                                     │
+                                                     │ N:1
+                                                     ▼
+
+                                            ┌────────────────┐
+                                            │   PRODUTO      │
+                                            │ produto_id     │
+                                            │ categoria_id FK│
+                                            │ empresa_id FK  │
+                                            └───────┬────────┘
+                                                    │
+                                                    │ N:1
+                                                    ▼
+
+                                            ┌────────────────┐
+                                            │  CATEGORIA     │
+                                            │ categoria_id   │
+                                            │ empresa_id FK  │
+                                            └────────────────┘
+
+
+
+                  FLUXO DE VENDA
+
+
+        ORÇAMENTO APROVADO
+               │
+               ▼
+
+        ┌───────────────┐
+        │    VENDA      │
+        │ venda_id      │
+        │ cliente_id FK │
+        │ empresa_id FK │
+        └───────┬───────┘
+                │
+                │ 1:N
+                ▼
+
+        ┌────────────────┐
+        │ ITEM_VENDA     │
+        │ item_id        │
+        │ venda_id FK    │
+        │ produto_id FK  │
+        └───────┬────────┘
+                │
+                ▼
+
+        ┌────────────────┐
+        │   PRODUTO      │
+        │ baixa estoque  │
+        └────────────────┘
+
+
+
+                 FINANCEIRO
+
+
+        ┌────────────────┐
+        │    VENDA       │
+        └───────┬────────┘
+                │
+                │ gera
+                ▼
+
+        ┌────────────────┐
+        │   RECEITA      │
+        │ receita_id     │
+        │ venda_id FK    │
+        │ empresa_id FK  │
+        └────────────────┘
+
+
+
+        ┌────────────────┐
+        │   DESPESA      │
+        │ despesa_id     │
+        │ empresa_id FK  │
+        └────────────────┘

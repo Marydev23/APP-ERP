@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS categorias (
 );
 """)
 
+
+
 # ========================
 # TABELA FUNCIONÁRIOS
 # ========================

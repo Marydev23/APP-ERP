@@ -2,13 +2,10 @@ from datetime import datetime
 from extensions import db
 
 
-class Venda(db.Model):
-    __tablename__ = "vendas"
+class Orcamento(db.Model):
+    __tablename__ = "orcamentos"
 
-    id = db.Column(
-        db.Integer,
-        primary_key=True
-    )
+    id = db.Column(db.Integer, primary_key=True)
 
     empresa_id = db.Column(
         db.Integer,
@@ -16,21 +13,14 @@ class Venda(db.Model):
         nullable=False,
         index=True
     )
-
     cliente_id = db.Column(
         db.Integer,
         db.ForeignKey("clientes.id"),
-        nullable=True,
+        nullable=False,
         index=True
     )
 
-    data_venda = db.Column(
-        db.DateTime,
-        default=datetime.utcnow,
-        nullable=False
-    )
-
-    subtotal = db.Column(
+    frete = db.Column(
         db.Numeric(10, 2),
         default=0
     )
@@ -40,23 +30,22 @@ class Venda(db.Model):
         default=0
     )
 
+    subtotal = db.Column(
+        db.Numeric(10, 2),
+        default=0
+    )
+
     total = db.Column(
         db.Numeric(10, 2),
         nullable=False
     )
 
-    forma_pagamento = db.Column(
-        db.String(50)
-    )
-
     status = db.Column(
         db.String(30),
-        default="FINALIZADA"
+        default="RASCUNHO"
     )
 
-    observacao = db.Column(
-        db.Text
-    )
+    observacao = db.Column(db.Text)
 
     criado_em = db.Column(
         db.DateTime,
@@ -71,22 +60,22 @@ class Venda(db.Model):
     deletado_em = db.Column(
     db.DateTime,
     nullable=True
-)
+    )
 
     empresa = db.relationship(
         "Empresa",
-        back_populates="vendas"
+        back_populates="orcamentos"
     )
 
     cliente = db.relationship(
         "Cliente",
-        back_populates="vendas"
+        back_populates="orcamentos"
     )
 
     itens = db.relationship(
-        "ItemVenda",
-        back_populates="venda",
+        "ItemOrcamento",
+        back_populates="orcamento",
         cascade="all, delete-orphan"
     )
     def __repr__(self):
-        return f"<Venda {self.id}>"
+     return f"<Orcamento {self.id}>"
