@@ -103,6 +103,12 @@ class Empresa(db.Model):
         back_populates="empresa",
         cascade="all, delete-orphan"
     )
+    
+    formas_pagamento = db.relationship(
+    "FormaPagamento",
+    back_populates="empresa",
+    cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Empresa {self.nome}>"

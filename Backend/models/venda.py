@@ -1,8 +1,10 @@
 from datetime import datetime
+
 from extensions import db
 
 
 class Venda(db.Model):
+
     __tablename__ = "vendas"
 
     id = db.Column(
@@ -40,6 +42,18 @@ class Venda(db.Model):
         default=0
     )
 
+    # Taxa cobrada pela forma de pagamento
+    taxa_pagamento = db.Column(
+        db.Numeric(10, 2),
+        default=0
+    )
+
+    # Percentual da taxa utilizado na venda
+    percentual_taxa = db.Column(
+        db.Numeric(5, 2),
+        default=0
+    )
+
     total = db.Column(
         db.Numeric(10, 2),
         nullable=False
@@ -47,6 +61,11 @@ class Venda(db.Model):
 
     forma_pagamento = db.Column(
         db.String(50)
+    )
+
+    parcelas = db.Column(
+        db.Integer,
+        default=1
     )
 
     status = db.Column(
@@ -68,10 +87,11 @@ class Venda(db.Model):
         default=datetime.utcnow,
         onupdate=datetime.utcnow
     )
+
     deletado_em = db.Column(
-    db.DateTime,
-    nullable=True
-)
+        db.DateTime,
+        nullable=True
+    )
 
     empresa = db.relationship(
         "Empresa",
@@ -88,5 +108,6 @@ class Venda(db.Model):
         back_populates="venda",
         cascade="all, delete-orphan"
     )
+
     def __repr__(self):
         return f"<Venda {self.id}>"

@@ -35,6 +35,8 @@ class Categoria(db.Model):
         nullable=True
     )
 
+  
+
     # Relacionamentos
     empresa = db.relationship(
         "Empresa",
@@ -50,6 +52,13 @@ class Categoria(db.Model):
         "Receita",
         back_populates="categoria"
     )
+    despesas = db.relationship(
+        "Despesa",
+        back_populates="categoria",
+        cascade="all, delete-orphan"
+    )
+
+    
 
     def __repr__(self):
         return f"<Categoria {self.nome}>"
