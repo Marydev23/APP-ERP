@@ -1,251 +1,818 @@
-Resumo técnico — Backend ERP SaaS
+# Resumo Técnico — Backend ERP SaaS
 
-Agora o projeto está sendo estruturado para funcionar como um ERP SaaS multiempresa.
+## 1. Visão geral do projeto
 
-ERP
-├── Empresa A
-│ ├── usuários
-│ ├── clientes
-│ ├── vendas
-│ └── financeiro
+O projeto consiste em um **ERP SaaS multiempresa**, desenvolvido para atender diferentes empresas utilizando a mesma aplicação.
+
+Cada empresa possui seus próprios usuários, clientes, produtos, vendas, orçamentos e informações financeiras.
+
+A arquitetura deve garantir que uma empresa **nunca consiga acessar ou alterar dados pertencentes a outra empresa**.
+
+### Estrutura conceitual
+
+```text
+ERP SaaS
 │
-└── Empresa B
-├── usuários
-├── clientes
-├── vendas
-└── financeiro
+├── Empresa A
+│   ├── Usuários
+│   ├── Funcionários
+│   ├── Clientes
+│   ├── Categorias
+│   ├── Produtos
+│   ├── Orçamentos
+│   ├── Vendas
+│   └── Financeiro
+│
+├── Empresa B
+│   ├── Usuários
+│   ├── Funcionários
+│   ├── Clientes
+│   ├── Categorias
+│   ├── Produtos
+│   ├── Orçamentos
+│   ├── Vendas
+│   └── Financeiro
+│
+└── ...
+```
 
-Estrutura atual:
+---
 
+# 2. Arquitetura atual
+
+A estrutura principal do ERP está organizada em:
+
+```text
 EMPRESA
-|
+│
+├── Usuários
+│
+├── Funcionários
+│
+├── Clientes
+│
+├── Categorias
+│
+├── Produtos
+│
+├── Orçamentos
+│   └── Itens do orçamento
+│
+├── Vendas
+│   └── Itens da venda
+│
+├── Formas de pagamento
+│   └── Taxas de pagamento
+│
+└── Financeiro
+    ├── Receitas
+    └── Despesas
+```
+
+---
+
+# 3. Multiempresa
+
+O sistema utiliza `empresa_id` como chave de isolamento dos dados.
+
+As principais entidades possuem relacionamento com a empresa:
+
+```text
+Empresa
+   │
+   ├── Usuário
+   ├── Funcionário
+   ├── Cliente
+   ├── Categoria
+   ├── Produto
+   ├── Orçamento
+   ├── Venda
+   ├── Receita
+   ├── Despesa
+   └── Forma de pagamento
+```
+
+### Regra principal
+
+Toda operação autenticada deve identificar a empresa através do JWT.
+
+Exemplo:
+
+```text
+Usuário
+   │
+   ▼
+JWT
+   │
+   ├── usuario_id
+   ├── empresa_id
+   └── tipo
+```
+
+O backend utiliza o `empresa_id` para limitar as consultas e alterações.
+
+### Exemplo
+
+Se o usuário pertence à:
+
+```text
+empresa_id = 10
+```
+
+ele só poderá consultar:
+
+```text
+clientes WHERE empresa_id = 10
+produtos WHERE empresa_id = 10
+vendas WHERE empresa_id = 10
+receitas WHERE empresa_id = 10
+```
+
+Nunca deverá receber dados de:
+
+```text
+empresa_id = 20
+empresa_id = 30
+...
+```
+
+---
+
+# 4. Relacionamentos principais
+
+## Empresa → Usuários
+
+```text
+EMPRESA
+   │
+   └── 1:N ── USUÁRIOS
+```
+
+Cada usuário pertence a uma empresa.
+
+---
+
+## Empresa → Funcionários
+
+```text
+EMPRESA
+   │
+   └── 1:N ── FUNCIONÁRIOS
+```
+
+---
+
+## Empresa → Clientes
+
+```text
+EMPRESA
+   │
+   └── 1:N ── CLIENTES
+```
+
+---
+
+## Empresa → Produtos
+
+```text
+EMPRESA
+   │
+   └── 1:N ── PRODUTOS
+                    │
+                    └── N:1 ── CATEGORIA
+```
+
+---
+
+# 5. Orçamentos
+
+Um orçamento pertence a uma empresa e pode estar relacionado a um cliente.
+
+```text
+EMPRESA
+   │
+   └── ORÇAMENTO
+          │
+          └── 1:N
+                │
+                ▼
+          ITEM_ORCAMENTO
+                │
+                └── N:1
+                      │
+                      ▼
+                   PRODUTO
+```
+
+### Fluxo
+
+```text
+Cliente
+   │
+   ▼
+Orçamento
+   │
+   ├── Produto A
+   ├── Produto B
+   └── Produto C
+          │
+          ▼
+      Aprovação
+          │
+          ▼
+         Venda
+```
+
+---
+
+# 6. Vendas
+
+A venda é composta por itens.
+
+```text
+VENDA
+  │
+  └── 1:N
+        │
+        ▼
+   ITEM_VENDA
+        │
+        └── N:1
+              │
+              ▼
+           PRODUTO
+```
+
+### Fluxo comercial
+
+```text
+ORÇAMENTO
+    │
+    ▼
+ APROVADO
+    │
+    ▼
+  VENDA
+    │
+    ├── Item 1
+    ├── Item 2
+    └── Item 3
+    │
+    ▼
+Forma de pagamento
+    │
+    ▼
+ RECEITA
+```
+
+---
+
+# 7. Formas de pagamento
+
+O ERP terá um sistema configurável de formas de pagamento.
+
+A empresa poderá cadastrar suas próprias opções.
+
+Exemplos:
+
+```text
+Dinheiro
+PIX
+Cartão de débito
+Cartão de crédito
+Boleto
+Transferência
+```
+
+Cada forma de pagamento poderá possuir uma taxa percentual configurada pela empresa.
+
+### Exemplo
+
+```text
+Cartão de crédito
+Taxa: 3,99%
+
+Cartão de débito
+Taxa: 1,99%
+
+PIX
+Taxa: 0%
+
+Dinheiro
+Taxa: 0%
+
+Boleto
+Taxa: 2,50%
+```
+
+Essa configuração permitirá que o sistema calcule automaticamente o valor líquido da venda.
+
+### Exemplo
+
+Venda:
+
+```text
+Valor: R$ 1.000,00
+```
+
+Pagamento:
+
+```text
+Cartão de crédito
+Taxa: 3,99%
+```
+
+Taxa:
+
+```text
+R$ 39,90
+```
+
+Valor líquido:
+
+```text
+R$ 960,10
+```
+
+A regra de cálculo deverá ficar no backend, e não somente no frontend.
+
+---
+
+# 8. Financeiro
+
+## Receitas
+
+Uma venda poderá gerar uma receita.
+
+```text
+VENDA
+   │
+   └── gera ──> RECEITA
+```
+
+A receita deverá possuir informações como:
+
+```text
+empresa
+cliente
+data
+data de recebimento
+descrição
+valor
+desconto
+valor total
+forma de pagamento
+status
+```
+
+---
+
+## Despesas
+
+As despesas representam os valores que a empresa precisa pagar.
+
+```text
+EMPRESA
+   │
+   └── DESPESAS
+```
+
+Exemplos:
+
+```text
+Aluguel
+Energia
+Internet
+Fornecedores
+Salários
+Impostos
+Serviços
+```
+
+---
+
+# 9. Estrutura de segurança
+
+O sistema utiliza:
+
+```text
+Flask
+   │
+   ├── Flask-JWT-Extended
+   │
+   ├── JWT
+   │
+   └── Hash de senha
+```
+
+O login valida:
+
+```text
+E-mail
+Senha
+Usuário ativo
+Empresa ativa
+```
+
+Após autenticação, o backend gera um JWT contendo informações como:
+
+```json
+{
+  "usuario_id": "...",
+  "empresa_id": "...",
+  "tipo": "USUARIO"
+}
+```
+
+O `empresa_id` é utilizado para o isolamento dos dados.
+
+---
+
+# 10. Soft Delete
+
+O sistema utiliza exclusão lógica em entidades importantes.
+
+Em vez de apagar definitivamente o registro:
+
+```text
+deletado_em = NULL
+```
+
+representa um registro ativo.
+
+Quando excluído:
+
+```text
+deletado_em = data/hora
+```
+
+Isso permite preservar o histórico do sistema.
+
+---
+
+# 11. Tecnologias
+
+## Backend
+
+```text
+Python
+Flask
+Flask-SQLAlchemy
+SQLAlchemy
+Flask-Migrate
+Alembic
+Flask-JWT-Extended
+Werkzeug
+Flask-CORS
+```
+
+## Banco de dados
+
+```text
+PostgreSQL
+```
+
+## Produção
+
+```text
+Render
+Gunicorn
+```
+
+## Testes da API
+
+```text
+Postman
+```
+
+## Versionamento
+
+```text
+Git
+GitHub
+```
+
+## Futuro
+
+```text
+Docker
+Swagger / OpenAPI
+```
+
+---
+
+# 12. Estrutura do Backend
+
+```text
+Backend/
+│
+├── app.py
+├── config.py
+├── extensions.py
+├── requirements.txt
+│
+├── exceptions/
+│   ├── __init__.py
+│   ├── api_exception.py
+│   └── handlers.py
+│
+├── models/
+│   ├── empresa.py
+│   ├── usuario.py
+│   ├── funcionario.py
+│   ├── cliente.py
+│   ├── categoria.py
+│   ├── produto.py
+│   ├── orcamento.py
+│   ├── item_orcamento.py
+│   ├── venda.py
+│   ├── item_venda.py
+│   ├── receita.py
+│   ├── despesa.py
+│   ├── forma_pagamento.py
+│   └── taxa_pagamento.py
+│
+├── routes/
+│   ├── auth.py
+│   ├── empresa.py
+│   ├── usuario.py
+│   ├── funcionario.py
+│   ├── cliente.py
+│   ├── categoria.py
+│   ├── produto.py
+│   ├── orcamento.py
+│   ├── item_orcamento.py
+│   ├── venda.py
+│   ├── item_venda.py
+│   ├── receita.py
+│   ├── despesa.py
+│   ├── forma_pagamento.py
+│   └── taxa_pagamento.py
+│
+└── services/
+    ├── auth_service.py
+    ├── empresa_service.py
+    ├── usuario_service.py
+    ├── funcionario.service.py
+    ├── cliente_service.py
+    ├── categoria_service.py
+    ├── produto_service.py
+    ├── orcamento_service.py
+    ├── item_orcamento_service.py
+    ├── venda_service.py
+    ├── item_venda_service.py
+    ├── receita_service.py
+    ├── despesa_service.py
+    ├── forma_pagamento_service.py
+    └── taxa_pagamento_service.py
+```
+
+---
+
+# 13. Fluxo completo do ERP
+
+```text
+                 CADASTRO
+                    │
+                    ▼
+                EMPRESA
+                    │
+                    ▼
+                 USUÁRIO
+                    │
+                    ▼
+                  LOGIN
+                    │
+                    ▼
+                   JWT
+                    │
+                    ▼
+        ┌──────────────────────┐
+        │   SISTEMA ERP        │
+        └──────────┬───────────┘
+                   │
+       ┌───────────┼────────────┐
+       │           │            │
+       ▼           ▼            ▼
+   CLIENTES    PRODUTOS     FUNCIONÁRIOS
+                   │
+                   ▼
+               ORÇAMENTO
+                   │
+                   ▼
+                APROVADO
+                   │
+                   ▼
+                 VENDA
+                   │
+            ┌──────┴──────┐
+            │             │
+            ▼             ▼
+        PRODUTOS      PAGAMENTO
+                          │
+                          ▼
+                 FORMA DE PAGAMENTO
+                          │
+                          ▼
+                    TAXA APLICADA
+                          │
+                          ▼
+                       RECEITA
+                          │
+                          ▼
+                    DASHBOARD
+```
+
+---
+
+# 14. Roadmap de desenvolvimento
+
+## Fase 1 — Fundação
+
+- [x] Estrutura Flask
+- [x] Configuração do banco
+- [x] SQLAlchemy
+- [x] Flask-Migrate
+- [x] PostgreSQL
+- [x] Estrutura de Models
+- [x] Services
+- [x] Routes
+- [x] Tratamento de exceções
+
+---
+
+## Fase 2 — Empresa e autenticação
+
+- [x] Cadastro de empresa
+- [x] Cadastro de usuário
+- [x] Hash de senha
+- [x] Login
+- [x] JWT
+- [x] `empresa_id` no token
+- [ ] Refresh Token
+- [ ] Middleware/permissões
+- [ ] Controle de Administrador e Funcionário
+
+---
+
+## Fase 3 — Cadastros
+
+- [x] Clientes
+- [x] Categorias
+- [x] Produtos
+- [x] Funcionários
+
+---
+
+## Fase 4 — Comercial
+
+- [x] Orçamentos
+- [x] Itens do orçamento
+- [x] Vendas
+- [x] Itens da venda
+- [ ] Conversão de orçamento em venda
+- [ ] Baixa de estoque
+
+---
+
+## Fase 5 — Pagamentos
+
+- [x] Forma de pagamento
+- [x] Taxa de pagamento
+- [ ] Configuração das taxas pela empresa
+- [ ] Cálculo automático da taxa
+- [ ] Desconto por forma de pagamento
+- [ ] Valor bruto
+- [ ] Valor da taxa
+- [ ] Valor líquido
+- [ ] Parcelamento
+- [ ] Controle de vencimento/recebimento
+
+---
+
+## Fase 6 — Financeiro
+
+- [x] Receitas
+- [x] Despesas
+- [ ] Integração Venda → Receita
+- [ ] Controle de recebimentos
+- [ ] Contas a pagar
+- [ ] Contas a receber
+- [ ] Fluxo de caixa
+
+---
+
+## Fase 7 — Gestão
+
+- [ ] Dashboard
+- [ ] Indicadores financeiros
+- [ ] Relatório de vendas
+- [ ] Relatório de despesas
+- [ ] Relatório de receitas
+- [ ] Relatório de produtos
+- [ ] Relatório de clientes
+
+---
+
+## Fase 8 — API e qualidade
+
+- [ ] Swagger / OpenAPI
+- [ ] Testes automatizados
+- [ ] Validação dos dados
+- [ ] Tratamento completo de erros
+- [ ] Controle de permissões
+- [ ] Logs
+- [ ] Paginação
+- [ ] Melhorias de segurança
+
+---
+
+## Fase 9 — Infraestrutura
+
+- [ ] Docker
+- [ ] Docker Compose
+- [ ] Configuração de produção
+- [ ] Gunicorn
+- [ ] Deploy do Backend
+- [ ] Banco PostgreSQL em produção
+- [ ] Variáveis de ambiente
+- [ ] CI/CD
+
+---
+
+## Fase 10 — Aplicativo SaaS
+
+- [ ] Frontend
+- [ ] Aplicativo mobile
+- [ ] Cadastro/login
+- [ ] Dashboard
+- [ ] Clientes
+- [ ] Produtos
+- [ ] Vendas
+- [ ] Financeiro
+- [ ] Configurações da empresa
+- [ ] Publicação na Play Store
+
+---
+
+# 15. Prioridade atual
+
+Antes de adicionar novas funcionalidades, a prioridade técnica deve ser:
+
+```text
+1. Multiempresa
+        ↓
+2. Autenticação
+        ↓
+3. JWT
+        ↓
+4. Permissões
+        ↓
+5. Formas de pagamento
+        ↓
+6. Taxas
+        ↓
+7. Vendas
+        ↓
+8. Receitas
+        ↓
+9. Despesas
+        ↓
+10. Dashboard
+```
+
+O ponto mais importante do projeto é garantir que a regra:
+
+> **cada empresa só acessa os próprios dados**
+
+seja respeitada em **todas as rotas e services**.
+
+Depois disso, o segundo ponto crítico é consolidar a venda e o pagamento, porque é onde o ERP começa efetivamente a gerar o financeiro.
+
+---
+
+# 16. Objetivo final
+
+O objetivo é transformar o projeto em um **ERP SaaS comercial**, no qual diferentes empresas possam utilizar a mesma plataforma de forma isolada e segura.
+
+Cada empresa terá:
+
+```text
+Conta
+│
 ├── Usuários
 ├── Funcionários
 ├── Clientes
 ├── Produtos
-│ |
-│ └── Categorias
-│
+├── Categorias
 ├── Orçamentos
-│ |
-│ └── Itens do orçamento
-│ |
-│ └── Produtos
-│
 ├── Vendas
-│ |
-│ └── Itens da venda
-│ |
-│ └── Produtos
-│
-└── Financeiro
-|
+├── Formas de pagamento
+├── Taxas
 ├── Receitas
-└── Despesas
+├── Despesas
+├── Dashboard
+└── Relatórios
+```
 
-                           ┌──────────────┐
-                           │   EMPRESA    │
-                           │ empresa_id   │
-                           └──────┬───────┘
-                                  │ 1:N
-          ┌───────────────────────┼────────────────────────┐
-          │                       │                        │
-          ▼                       ▼                        ▼
-
-┌────────────────┐ ┌────────────────┐ ┌────────────────┐
-│ USUARIO │ │ FUNCIONARIO │ │ CLIENTE │
-│ usuario_id │ │ funcionario_id │ │ cliente_id │
-│ empresa_id FK │ │ empresa_id FK │ │ empresa_id FK │
-└────────────────┘ └────────────────┘ └───────┬────────┘
-│
-│ 1:N
-▼
-
-                                               ┌────────────────┐
-                                               │   ORÇAMENTO    │
-                                               │ orcamento_id   │
-                                               │ cliente_id FK  │
-                                               │ empresa_id FK  │
-                                               └───────┬────────┘
-                                                       │
-                                                       │ 1:N
-                                                       ▼
-
-                                            ┌────────────────────┐
-                                            │ ITEM_ORCAMENTO     │
-                                            │ item_id            │
-                                            │ orcamento_id FK    │
-                                            │ produto_id FK      │
-                                            │ quantidade         │
-                                            └────────┬───────────┘
-                                                     │
-                                                     │ N:1
-                                                     ▼
-
-                                            ┌────────────────┐
-                                            │   PRODUTO      │
-                                            │ produto_id     │
-                                            │ categoria_id FK│
-                                            │ empresa_id FK  │
-                                            └───────┬────────┘
-                                                    │
-                                                    │ N:1
-                                                    ▼
-
-                                            ┌────────────────┐
-                                            │  CATEGORIA     │
-                                            │ categoria_id   │
-                                            │ empresa_id FK  │
-                                            └────────────────┘
-
-
-
-                  FLUXO DE VENDA
-
-
-        ORÇAMENTO APROVADO
-               │
-               ▼
-
-        ┌───────────────┐
-        │    VENDA      │
-        │ venda_id      │
-        │ cliente_id FK │
-        │ empresa_id FK │
-        └───────┬───────┘
-                │
-                │ 1:N
-                ▼
-
-        ┌────────────────┐
-        │ ITEM_VENDA     │
-        │ item_id        │
-        │ venda_id FK    │
-        │ produto_id FK  │
-        └───────┬────────┘
-                │
-                ▼
-
-        ┌────────────────┐
-        │   PRODUTO      │
-        │ baixa estoque  │
-        └────────────────┘
-
-
-
-                 FINANCEIRO
-
-
-        ┌────────────────┐
-        │    VENDA       │
-        └───────┬────────┘
-                │
-                │ gera
-                ▼
-
-        ┌────────────────┐
-        │   RECEITA      │
-        │ receita_id     │
-        │ venda_id FK    │
-        │ empresa_id FK  │
-        └────────────────┘
-
-
-
-        ┌────────────────┐
-        │   DESPESA      │
-        │ despesa_id     │
-        │ empresa_id FK  │
-        └────────────────┘
-
-
-        PROXIMA ETAPA :
-
-        Etapa 1 — Autenticação
-
-Login
-JWT
-Hash de senha (bcrypt)
-Refresh Token
-Middleware protegendo rotas
-Permissões (Administrador / Funcionário)
-
-⬇️
-
-Etapa 2 — Usuário
-Criar usuário
-Editar
-Listar
-Excluir (soft delete)
-
-⬇️
-
-Etapa 3 — Empresa
-Cadastro da empresa
-Logo
-Dados
-Configurações
-
-⬇️
-
-Etapa 4 — Categorias
-
-⬇️
-
-Etapa 5 — Produtos
-
-⬇️
-
-Etapa 6 — Clientes
-
-⬇️
-
-Etapa 7 — Funcionários
-
-⬇️
-
-Etapa 8 — Orçamentos
-
-⬇️
-
-Etapa 9 — Vendas
-
-⬇️
-
-Etapa 10 — Receitas e Despesas
-
-⬇️
-
-Etapa 11 — Dashboard
-
-A ordem que eu seguiria no seu ERP
-
-✅ 1. Empresa (feito)
-
-✅ 2. Usuário (feito)
-
-➡️ 3. Login + JWT (agora)
-
-➡️ 4. Middleware de autenticação
-
-➡️ 5. Clientes
-
-➡️ 6. Produtos
-
-➡️ 7. Categorias
-
-➡️ 8. Orçamentos
-
-➡️ 9. Vendas
-
-➡️ 10. Receitas
-
-➡️ 11. Despesas
-
-➡️ 12. Dashboard
-
-➡️ 13. Relatórios
-
-➡️ 14. Deploy
-
-venv\\Scripts\\activate
+A arquitetura deverá permitir futuramente adicionar novos módulos sem comprometer o isolamento entre empresas.
