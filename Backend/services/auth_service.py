@@ -22,7 +22,7 @@ class AuthService:
         if not usuario.ativo:
             raise Unauthorized("Usuário desativado.")
         
-        if usuario.empresa.deletado_em is not None:
+        if usuario.empresa and usuario.empresa.deletado_em is not None:
             raise Unauthorized("Empresa desativada.")
 
         if not check_password_hash(

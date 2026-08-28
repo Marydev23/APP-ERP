@@ -3,14 +3,23 @@ import datetime
 from exceptions.api_exception import BadRequest, NotFound
 from models.empresa import Empresa
 from extensions import db
+from models.usuario import Usuario
 
 
 class EmpresaService:
 
     @staticmethod
-    def registrar(dados):
+    def registrar(dados, usuario_id):
+        usuario = Usuario.query.get(usuario_id)
+
+        if not usuario:
+            raise NotFound("Usuário não encontrado.")
+
+        if usuario.empresa_id is not None:
+            raise BadRequest("Usuário já possui uma empresa.")
 
         if not dados.get("nome"):
+            
             raise BadRequest("Nome da empresa é obrigatório.")
   
         if not dados.get("cnpj"):
@@ -47,15 +56,22 @@ class EmpresaService:
             slogan=dados.get("slogan"),
             logo=dados.get("logo")
         )
-
         try:
             db.session.add(empresa)
-            db.session.commit()
-            return empresa
 
+            db.session.flush()
+
+            usuario.empresa_id = empresa.id
+
+            db.session.commit()
+
+            return empresa
         except Exception:
             db.session.rollback()
             raise
+
+       
+       
     
 
     @staticmethod
@@ -67,6 +83,10 @@ class EmpresaService:
             raise NotFound("Empresa não encontrada.")
 
         return empresa
+
+    @staticmethod
+    def listar_todas():
+        return Empresa.query.all()
     
     @staticmethod
     def atualizar(empresa_id, dados):

@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 
 from flask_cors import CORS
 
@@ -47,6 +47,11 @@ jwt.init_app(app)
 register_error_handlers(app)
 
 
+@app.route("/")
+def home():
+    return jsonify({
+        "mensagem": "API ERP online"
+    })
 
 app.register_blueprint(
     auth_bp,

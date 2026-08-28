@@ -20,4 +20,4 @@ def register_error_handlers(app):
 
         return jsonify({
             "erro": str(e)
-        }), 500
+        }), 500500

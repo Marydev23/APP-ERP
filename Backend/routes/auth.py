@@ -6,11 +6,9 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/login", methods=["POST"])
 def login():
-
     dados = request.get_json()
 
     try:
-
         token = AuthService.login(dados)
 
         return jsonify({
