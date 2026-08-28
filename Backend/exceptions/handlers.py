@@ -14,8 +14,10 @@ def register_error_handlers(app):
 
     @app.errorhandler(Exception)
     def handle_internal_error(e):
+        import traceback
+
+        traceback.print_exc()
 
         return jsonify({
-            "erro": "Erro interno do servidor."
+            "erro": str(e)
         }), 500
-
