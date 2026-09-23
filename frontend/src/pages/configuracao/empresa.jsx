@@ -21,10 +21,26 @@ export default function Empresa() {
 
   const carregarEmpresa = async () => {
     try {
-      const res = await fetch("http://localhost:5000/empresa");
-      if (!res.ok) throw new Error("Erro ao buscar dados da empresa");
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        console.log("Sessão não encontrada.");
+        return;
+      }
+
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/empresa/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        console.log("Nenhuma empresa cadastrada ainda.");
+        return;
+      }
 
       const data = await res.json();
+
       setNome(data.nome || "");
       setCnpj(data.cnpj || "");
       setEndereco(data.endereco || "");
@@ -34,55 +50,65 @@ export default function Empresa() {
       setTelefone(data.telefone || "");
       setEmail(data.email || "");
       setSite(data.site || "");
-      setInstagran(data.instagran || "");
+      setInstagran(data.instagram || "");
       setSlogan(data.slogan || "");
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao carregar empresa:", err);
     }
   };
 
   const salvarEmpresa = async () => {
     try {
-      const formData = new FormData();
-      formData.append("nome", nome);
-      formData.append("cnpj", cnpj);
-      formData.append("endereco", endereco);
-      formData.append("cidade", cidade);
-      formData.append("estado", estado);
-      formData.append("cep", cep);
-      formData.append("telefone", telefone);
-      formData.append("email", email);
-      formData.append("site", site);
-      formData.append("instagran", instagran);
-      formData.append("slogan", slogan);
-      if (logo) formData.append("logo", logo);
+      const token = localStorage.getItem("access_token");
 
-      const res = await fetch("http://localhost:5000/empresa", {
-        method: "POST",
-        body: formData,
+      if (!token) {
+        alert("Sessão não encontrada. Faça login novamente.");
+        return;
+      }
+
+      const dados = {
+        nome,
+        cnpj,
+        endereco,
+        cidade,
+        estado,
+        cep,
+        telefone,
+        email,
+        site,
+        instagram: instagran,
+        slogan,
+        logo: logo || null,
+      };
+
+      const res = await fetch("http://localhost:5000/empresa/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(dados),
       });
 
-      if (res.ok) alert("Empresa salva com sucesso!");
-      else alert("Erro ao salvar empresa");
+      const data = await res.json();
+
+      if (res.ok) {
+        alert("Empresa atualizada com sucesso!");
+
+        setEditando(false);
+
+        carregarEmpresa();
+      } else {
+        console.error("Erro retornado pelo backend:", data);
+
+        alert(data.erro || "Erro ao atualizar empresa.");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao salvar empresa:", err);
+
+      alert("Erro de conexão com o servidor.");
     }
   };
-
-  function limparFormulario() {
-    setNome("");
-    setCnpj("");
-    setEndereco("");
-    setCidade("");
-    setEstado("");
-    setCep("");
-    setTelefone("");
-    setEmail("");
-    setSite("");
-    setInstagran("");
-    setSlogan("");
-    setLogo(null);
-  }
 
   return (
     <main className="flex-1 bg-white border rounded-lg p-8">
@@ -99,55 +125,65 @@ export default function Empresa() {
           onChange={setNome}
           disabled={!editando}
         />
+
         <Input
           label="CNPJ"
           value={cnpj}
           onChange={setCnpj}
           disabled={!editando}
         />
+
         <Input
           label="Endereço"
           value={endereco}
           onChange={setEndereco}
           disabled={!editando}
         />
+
         <Input
           label="Cidade"
           value={cidade}
           onChange={setCidade}
           disabled={!editando}
         />
+
         <Input
           label="Estado"
           value={estado}
           onChange={setEstado}
           disabled={!editando}
         />
+
         <Input label="CEP" value={cep} onChange={setCep} disabled={!editando} />
+
         <Input
           label="Telefone"
           value={telefone}
           onChange={setTelefone}
           disabled={!editando}
         />
+
         <Input
           label="E-mail"
           value={email}
           onChange={setEmail}
           disabled={!editando}
         />
+
         <Input
           label="Site"
           value={site}
           onChange={setSite}
           disabled={!editando}
         />
+
         <Input
-          label="Instagran"
+          label="Instagram"
           value={instagran}
           onChange={setInstagran}
           disabled={!editando}
         />
+
         <Input
           label="Slogan"
           value={slogan}
@@ -157,36 +193,29 @@ export default function Empresa() {
 
         <div className="space-y-2">
           <label className="font-medium">Logo</label>
+
           <input
             type="file"
             className="block"
+            disabled={!editando}
             onChange={(e) => setLogo(e.target.files[0])}
           />
-          {logo && typeof logo === "string" ? (
+
+          {logo && typeof logo !== "string" && (
             <img
-              src={`http://localhost:5000/imagens/${logo.split("/").pop()}`}
+              src={URL.createObjectURL(logo)}
               alt="Logo"
               className="mt-2 w-32 h-32 object-contain border"
             />
-          ) : (
-            logo && (
-              <img
-                src={URL.createObjectURL(logo)}
-                alt="Logo"
-                className="mt-2 w-32 h-32 object-contain border"
-              />
-            )
           )}
         </div>
 
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={async () => {
-              await salvarEmpresa();
-              setEditando(false);
-            }}
-            className="bg-blue-600 text-white w-24 h-8 px-2 py-1 text-xs hover:bg-blue-700 transition"
+            onClick={salvarEmpresa}
+            disabled={!editando}
+            className="bg-blue-600 text-white w-24 h-8 px-2 py-1 text-xs hover:bg-blue-700 transition disabled:bg-gray-400"
           >
             Salvar
           </button>
@@ -203,10 +232,12 @@ export default function Empresa() {
     </main>
   );
 }
+
 function Input({ label, value, onChange, placeholder, disabled }) {
   return (
     <div className="space-y-2">
       <label className="font-medium">{label}</label>
+
       <input
         type="text"
         value={value}
