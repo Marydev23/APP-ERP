@@ -1,11 +1,16 @@
 from datetime import datetime
+
 from extensions import db
 
 
 class Categoria(db.Model):
+
     __tablename__ = "categorias"
 
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
 
     empresa_id = db.Column(
         db.Integer,
@@ -35,9 +40,6 @@ class Categoria(db.Model):
         nullable=True
     )
 
-  
-
-    # Relacionamentos
     empresa = db.relationship(
         "Empresa",
         back_populates="categorias"
@@ -48,17 +50,17 @@ class Categoria(db.Model):
         back_populates="categoria",
         cascade="all, delete-orphan"
     )
+
     receitas = db.relationship(
         "Receita",
         back_populates="categoria"
     )
+
     despesas = db.relationship(
         "Despesa",
         back_populates="categoria",
         cascade="all, delete-orphan"
     )
-
-    
 
     def __repr__(self):
         return f"<Categoria {self.nome}>"

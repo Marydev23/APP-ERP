@@ -9,9 +9,7 @@ from extensions import db
 
 class ClienteService:
 
-    # ==========================================================
-    # CADASTRAR CLIENTE
-    # ==========================================================
+ 
 
     @staticmethod
     def registrar(dados, empresa_id):
@@ -62,9 +60,6 @@ class ClienteService:
             )
 
 
-    # ==========================================================
-    # LISTAR CLIENTES
-    # ==========================================================
 
     @staticmethod
     def listar(empresa_id):
@@ -77,9 +72,37 @@ class ClienteService:
         return clientes
 
 
-    # ==========================================================
-    # BUSCAR CLIENTE
-    # ==========================================================
+
+    @staticmethod
+    def buscar_ou_criar_por_nome(nome, empresa_id):
+
+        if not nome or not nome.strip():
+            return None
+
+        nome = nome.strip()
+
+        cliente = Cliente.query.filter(
+            Cliente.empresa_id == empresa_id,
+            Cliente.nome.ilike(nome),
+            Cliente.deletado_em.is_(None)
+        ).first()
+
+        if cliente:
+            return cliente
+
+        cliente = Cliente(
+            empresa_id=empresa_id,
+            nome=nome
+        )
+
+        db.session.add(cliente)
+        db.session.flush()
+
+        return cliente
+
+
+
+
 
     @staticmethod
     def buscar_por_id(cliente_id, empresa_id):
@@ -98,9 +121,6 @@ class ClienteService:
         return cliente
 
 
-    # ==========================================================
-    # ATUALIZAR CLIENTE
-    # ==========================================================
 
     @staticmethod
     def atualizar(cliente_id, dados, empresa_id):
@@ -110,9 +130,7 @@ class ClienteService:
             empresa_id
         )
 
-        # ------------------------------------------------------
-        # Verificar CPF/CNPJ caso esteja sendo alterado
-        # ------------------------------------------------------
+   
 
         if "cpf_cnpj" in dados:
 
@@ -130,9 +148,7 @@ class ClienteService:
 
             cliente.cpf_cnpj = dados["cpf_cnpj"]
 
-        # ------------------------------------------------------
-        # Atualização parcial
-        # ------------------------------------------------------
+       
 
         if "nome" in dados:
             cliente.nome = dados["nome"]
@@ -172,10 +188,37 @@ class ClienteService:
                 "Não foi possível atualizar o cliente."
             )
 
+      
+    @staticmethod
+    def buscar_ou_criar_por_nome(nome, empresa_id):
 
-    # ==========================================================
-    # DELETAR CLIENTE
-    # ==========================================================
+        if not nome or not nome.strip():
+            return None
+
+        nome = nome.strip()
+
+        cliente = Cliente.query.filter(
+            Cliente.empresa_id == empresa_id,
+            Cliente.nome.ilike(nome),
+            Cliente.deletado_em.is_(None)
+        ).first()
+
+        if cliente:
+            return cliente
+
+        cliente = Cliente(
+            empresa_id=empresa_id,
+            nome=nome
+        )
+
+        db.session.add(cliente)
+        db.session.flush()
+
+        return cliente
+
+
+
+
 
     @staticmethod
     def deletar(cliente_id, empresa_id):

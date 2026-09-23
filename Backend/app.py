@@ -83,6 +83,7 @@ app.register_blueprint(
     url_prefix="/produto"
 )
 
+
 app.register_blueprint(
     item_venda_bp,
     url_prefix="/item_venda"
@@ -95,12 +96,12 @@ app.register_blueprint(
 
 app.register_blueprint(
     despesa_bp,
-    url_prefix="/despesa"
+    url_prefix="/despesas"
 )
 
 app.register_blueprint(
     receita_bp,
-    url_prefix="/receita"
+    url_prefix="/receitas"
 )
 
 app.register_blueprint(
@@ -121,4 +122,8 @@ app.register_blueprint(
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )

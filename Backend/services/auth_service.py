@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from flask_jwt_extended import create_access_token
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from extensions import db
 from models.usuario import Usuario
@@ -42,5 +42,44 @@ class AuthService:
         usuario.ultimo_login = datetime.utcnow()
 
         db.session.commit()
-
         return token
+
+    @staticmethod
+    def register(dados):
+
+        if not dados.get("nome"):
+            raise BadRequest("Nome é obrigatório.")
+
+        if not dados.get("email"):
+            raise BadRequest("E-mail é obrigatório.")
+
+        if not dados.get("senha"):
+            raise BadRequest("Senha é obrigatória.")
+
+        usuario_existente = Usuario.query.filter_by(
+            email=dados["email"]
+        ).first()
+
+        if usuario_existente:
+            raise BadRequest("E-mail já cadastrado.")
+
+        usuario = Usuario(
+            nome=dados["nome"],
+            email=dados["email"],
+            senha_hash=generate_password_hash(dados["senha"]),
+            tipo="usuario",
+            ativo=True,
+            empresa_id=None
+        )
+
+        try:
+            db.session.add(usuario)
+            db.session.commit()
+
+            return usuario
+
+        except Exception:
+            db.session.rollback()
+            raise
+
+        

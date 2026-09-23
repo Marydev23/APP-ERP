@@ -57,7 +57,7 @@ def despesa_to_dict(despesa):
 # CADASTRAR DESPESA
 # ==========================================================
 
-@despesa_bp.route("/", methods=["POST"])
+@despesa_bp.route("/", methods=["POST"], strict_slashes=False)
 @jwt_required()
 def registrar():
 
@@ -82,7 +82,7 @@ def registrar():
 # LISTAR DESPESAS
 # ==========================================================
 
-@despesa_bp.route("/", methods=["GET"])
+@despesa_bp.route("/", methods=["GET"], strict_slashes=False)
 @jwt_required()
 def listar():
 
