@@ -16,6 +16,7 @@ def receita_to_dict(receita):
         "id": receita.id,
         "empresa_id": receita.empresa_id,
         "cliente_id": receita.cliente_id,
+        "cliente_nome": receita.cliente.nome if receita.cliente else None,
         "categoria_id": receita.categoria_id,
 
         "data": (
@@ -37,6 +38,8 @@ def receita_to_dict(receita):
             if receita.valor is not None
             else "0.00"
         ),
+        "taxa_percentual": float(receita.taxa_percentual or 0),
+        "taxa_valor": float(receita.taxa_valor or 0),
 
         "forma_pagamento": receita.forma_pagamento,
 
@@ -68,11 +71,9 @@ def receita_to_dict(receita):
     }
 
 
-# ==========================================================
-# CADASTRAR RECEITA
-# ==========================================================
 
-@receita_bp.route("/", methods=["POST"])
+
+@receita_bp.route("/", methods=["POST"], strict_slashes=False)
 @jwt_required()
 def registrar():
 
@@ -97,7 +98,7 @@ def registrar():
 # LISTAR RECEITAS
 # ==========================================================
 
-@receita_bp.route("/", methods=["GET"])
+@receita_bp.route("/", methods=["GET"], strict_slashes=False)
 @jwt_required()
 def listar():
 
@@ -191,4 +192,27 @@ def excluir(receita_id):
 
     return jsonify({
         "mensagem": "Receita excluída com sucesso"
+    }), 200
+
+# ==========================================================
+# MARCAR RECEITA COMO PAGA
+# ==========================================================
+@receita_bp.route(
+    "/<int:receita_id>/pagar",
+    methods=["PUT"]
+)
+@jwt_required()
+def marcar_como_paga(receita_id):
+
+    claims = get_jwt()
+    empresa_id = claims.get("empresa_id")
+
+    receita = ReceitaService.marcar_como_paga(
+        receita_id,
+        empresa_id
+    )
+
+    return jsonify({
+        "mensagem": "Receita marcada como paga com sucesso",
+        "receita": receita_to_dict(receita)
     }), 200

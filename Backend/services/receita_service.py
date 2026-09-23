@@ -4,16 +4,27 @@ from decimal import Decimal
 from exceptions.api_exception import BadRequest, NotFound
 
 from models.receita import Receita
-from models.cliente import Cliente
 from models.categoria import Categoria
+from models.forma_pagamento import FormaPagamento
+from models.taxa_pagamento import TaxaPagamento
+
+from services.cliente_service import ClienteService
 
 from extensions import db
 
 
 class ReceitaService:
 
+    # ==========================================================
+    # REGISTRAR RECEITA
+    # ==========================================================
+
     @staticmethod
     def registrar(dados, empresa_id):
+
+        # ======================================================
+        # VALIDAÇÕES INICIAIS
+        # ======================================================
 
         if not dados.get("data"):
             raise BadRequest(
@@ -54,22 +65,23 @@ class ReceitaService:
                 "Desconto não pode ser maior que o valor"
             )
 
-        # Cliente é opcional
-        cliente_id = dados.get("cliente_id")
+        # ======================================================
+        # CLIENTE
+        # ======================================================
 
-        if cliente_id:
+        cliente_nome = dados.get("cliente_nome")
 
-            cliente = Cliente.query.filter_by(
-                id=cliente_id,
-                empresa_id=empresa_id
-            ).first()
+        cliente = ClienteService.buscar_ou_criar_por_nome(
+            cliente_nome,
+            empresa_id
+        )
 
-            if not cliente:
-                raise NotFound(
-                    "Cliente não encontrado"
-                )
+        cliente_id = cliente.id if cliente else None
 
-        # Categoria é opcional
+        # ======================================================
+        # CATEGORIA
+        # ======================================================
+
         categoria_id = dados.get("categoria_id")
 
         if categoria_id:
@@ -84,7 +96,10 @@ class ReceitaService:
                     "Categoria não encontrada"
                 )
 
-        # Data da receita
+        # ======================================================
+        # DATA DA RECEITA
+        # ======================================================
+
         try:
 
             data = datetime.strptime(
@@ -98,7 +113,10 @@ class ReceitaService:
                 "Data inválida. Use o formato YYYY-MM-DD"
             )
 
-        # Data de recebimento
+        # ======================================================
+        # DATA DE RECEBIMENTO
+        # ======================================================
+
         data_recebimento = None
 
         if dados.get("data_recebimento"):
@@ -117,21 +135,84 @@ class ReceitaService:
                     "Use o formato YYYY-MM-DD"
                 )
 
+        # ======================================================
+        # VALOR APÓS DESCONTO
+        # ======================================================
+
         valor_total = valor - desconto
 
+        # ======================================================
+        # TAXA DA FORMA DE PAGAMENTO
+        # ======================================================
+
+        forma_pagamento_nome = dados.get(
+            "forma_pagamento"
+        )
+
+        taxa_percentual = Decimal("0.00")
+        taxa_valor = Decimal("0.00")
+
+        if forma_pagamento_nome:
+
+            taxa = TaxaPagamento.query.join(
+                TaxaPagamento.forma_pagamento
+            ).filter(
+                TaxaPagamento.parcelas == 1,
+                TaxaPagamento.ativo == True,
+                TaxaPagamento.forma_pagamento.has(
+                    empresa_id=empresa_id,
+                    nome=forma_pagamento_nome
+                )
+            ).first()
+
+            if taxa:
+
+                taxa_percentual = Decimal(
+                    str(taxa.percentual)
+                )
+
+                taxa_valor = (
+                    valor_total * taxa_percentual
+                ) / Decimal("100")
+
+        # ======================================================
+        # VALOR LÍQUIDO
+        # ======================================================
+
+        valor_liquido = (
+            valor_total - taxa_valor
+        )
+
+        # ======================================================
+        # CRIAR RECEITA
+        # ======================================================
+
         receita = Receita(
+
             empresa_id=empresa_id,
+
             cliente_id=cliente_id,
+
             categoria_id=categoria_id,
+
             data=data,
+
             data_recebimento=data_recebimento,
+
             descricao=dados.get("descricao"),
+
             valor=valor,
-            forma_pagamento=dados.get(
-                "forma_pagamento"
-            ),
+
+            forma_pagamento=forma_pagamento_nome,
+
             desconto=desconto,
-            valor_total=valor_total,
+
+            taxa_percentual=taxa_percentual,
+
+            taxa_valor=taxa_valor,
+
+            valor_total=valor_liquido,
+
             status=dados.get(
                 "status",
                 "PENDENTE"
@@ -139,9 +220,14 @@ class ReceitaService:
         )
 
         db.session.add(receita)
+
         db.session.commit()
 
         return receita
+
+    # ==========================================================
+    # LISTAR RECEITAS
+    # ==========================================================
 
     @staticmethod
     def listar(empresa_id):
@@ -154,6 +240,10 @@ class ReceitaService:
         ).all()
 
         return receitas
+
+    # ==========================================================
+    # BUSCAR RECEITA
+    # ==========================================================
 
     @staticmethod
     def buscar_por_id(
@@ -168,11 +258,16 @@ class ReceitaService:
         ).first()
 
         if not receita:
+
             raise NotFound(
                 "Receita não encontrada"
             )
 
         return receita
+
+    # ==========================================================
+    # ATUALIZAR RECEITA
+    # ==========================================================
 
     @staticmethod
     def atualizar(
@@ -186,23 +281,30 @@ class ReceitaService:
             empresa_id
         )
 
-        if "cliente_id" in dados:
+        # ======================================================
+        # CLIENTE
+        # ======================================================
 
-            cliente_id = dados["cliente_id"]
+        if "cliente_nome" in dados:
 
-            if cliente_id:
+            cliente_nome = dados.get(
+                "cliente_nome"
+            )
 
-                cliente = Cliente.query.filter_by(
-                    id=cliente_id,
-                    empresa_id=empresa_id
-                ).first()
+            cliente = ClienteService.buscar_ou_criar_por_nome(
+                cliente_nome,
+                empresa_id
+            )
 
-                if not cliente:
-                    raise NotFound(
-                        "Cliente não encontrado"
-                    )
+            receita.cliente_id = (
+                cliente.id
+                if cliente
+                else None
+            )
 
-            receita.cliente_id = cliente_id
+        # ======================================================
+        # CATEGORIA
+        # ======================================================
 
         if "categoria_id" in dados:
 
@@ -216,11 +318,16 @@ class ReceitaService:
                 ).first()
 
                 if not categoria:
+
                     raise NotFound(
                         "Categoria não encontrada"
                     )
 
             receita.categoria_id = categoria_id
+
+        # ======================================================
+        # DATA
+        # ======================================================
 
         if "data" in dados:
 
@@ -237,6 +344,10 @@ class ReceitaService:
                     "Data inválida. "
                     "Use o formato YYYY-MM-DD"
                 )
+
+        # ======================================================
+        # DATA DE RECEBIMENTO
+        # ======================================================
 
         if "data_recebimento" in dados:
 
@@ -260,15 +371,27 @@ class ReceitaService:
 
                 receita.data_recebimento = None
 
+        # ======================================================
+        # DESCRIÇÃO
+        # ======================================================
+
         if "descricao" in dados:
 
             receita.descricao = dados["descricao"]
+
+        # ======================================================
+        # FORMA DE PAGAMENTO
+        # ======================================================
 
         if "forma_pagamento" in dados:
 
             receita.forma_pagamento = (
                 dados["forma_pagamento"]
             )
+
+        # ======================================================
+        # VALOR
+        # ======================================================
 
         if "valor" in dados:
 
@@ -285,11 +408,16 @@ class ReceitaService:
                 )
 
             if valor < 0:
+
                 raise BadRequest(
                     "Valor não pode ser negativo"
                 )
 
             receita.valor = valor
+
+        # ======================================================
+        # DESCONTO
+        # ======================================================
 
         if "desconto" in dados:
 
@@ -306,13 +434,17 @@ class ReceitaService:
                 )
 
             if desconto < 0:
+
                 raise BadRequest(
                     "Desconto não pode ser negativo"
                 )
 
             receita.desconto = desconto
 
-        # Recalcula o valor total
+        # ======================================================
+        # RECALCULAR VALORES E TAXA
+        # ======================================================
+
         valor = (
             receita.valor
             or Decimal("0.00")
@@ -329,17 +461,63 @@ class ReceitaService:
                 "Desconto não pode ser maior que o valor"
             )
 
-        receita.valor_total = (
-            valor - desconto
+        valor_total = valor - desconto
+
+        taxa_percentual = Decimal("0.00")
+        taxa_valor = Decimal("0.00")
+
+        if receita.forma_pagamento:
+
+            taxa = TaxaPagamento.query.join(
+                TaxaPagamento.forma_pagamento
+            ).filter(
+                TaxaPagamento.parcelas == 1,
+                TaxaPagamento.ativo == True,
+                TaxaPagamento.forma_pagamento.has(
+                    empresa_id=empresa_id,
+                    nome=receita.forma_pagamento
+                )
+            ).first()
+
+            if taxa:
+
+                taxa_percentual = Decimal(
+                    str(taxa.percentual)
+                )
+
+                taxa_valor = (
+                    valor_total * taxa_percentual
+                ) / Decimal("100")
+
+        valor_liquido = (
+            valor_total - taxa_valor
         )
+
+        receita.taxa_percentual = taxa_percentual
+
+        receita.taxa_valor = taxa_valor
+
+        receita.valor_total = valor_liquido
+
+        # ======================================================
+        # STATUS
+        # ======================================================
 
         if "status" in dados:
 
             receita.status = dados["status"]
 
+        # ======================================================
+        # SALVAR
+        # ======================================================
+
         db.session.commit()
 
         return receita
+
+    # ==========================================================
+    # EXCLUIR RECEITA
+    # ==========================================================
 
     @staticmethod
     def excluir(
@@ -353,6 +531,24 @@ class ReceitaService:
         )
 
         receita.deletado_em = db.func.now()
+
+        db.session.commit()
+
+        return receita
+        # ==========================================================
+    # MARCAR RECEITA COMO PAGA
+    # ==========================================================
+    @staticmethod
+    def marcar_como_paga(
+        receita_id,
+        empresa_id
+    ):
+        receita = ReceitaService.buscar_por_id(
+            receita_id,
+            empresa_id
+        )
+
+        receita.status = "Pago"
 
         db.session.commit()
 

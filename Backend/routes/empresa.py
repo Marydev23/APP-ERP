@@ -30,36 +30,41 @@ def register():
             "erro": str(e)
         }), 400
     
+
+
 @empresa_bp.route("/", methods=["GET"])
 @jwt_required()
 def listar():
-
     try:
-        empresas = EmpresaService.listar_todas()
+        empresa_id = get_jwt()["empresa_id"]
 
-        return jsonify([
-            {
-                "id": empresa.id,
-                "nome": empresa.nome,
-                "cnpj": empresa.cnpj,
-                "email": empresa.email,
-                "telefone": empresa.telefone,
-                "cidade": empresa.cidade,
-                "estado": empresa.estado,
-                "endereco": empresa.endereco,
-                "cep": empresa.cep,
-                "site": empresa.site,
-                "instagram": empresa.instagram,
-                "slogan": empresa.slogan,
-                "logo": empresa.logo
-            }
-            for empresa in empresas
-        ]), 200
+        if not empresa_id:
+            return jsonify({
+                "erro": "Usuário não possui empresa vinculada."
+            }), 404
+
+        empresa = EmpresaService.listar(empresa_id)
+
+        return jsonify({
+            "id": empresa.id,
+            "nome": empresa.nome,
+            "cnpj": empresa.cnpj,
+            "email": empresa.email,
+            "telefone": empresa.telefone,
+            "cidade": empresa.cidade,
+            "estado": empresa.estado,
+            "endereco": empresa.endereco,
+            "cep": empresa.cep,
+            "site": empresa.site,
+            "instagram": empresa.instagram,
+            "slogan": empresa.slogan,
+            "logo": empresa.logo
+        }), 200
 
     except Exception as e:
         return jsonify({
             "erro": str(e)
-        }), 500
+        }), 400
 
 
 @empresa_bp.route("/", methods=["PUT"])

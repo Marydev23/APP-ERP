@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 
 from exceptions.api_exception import BadRequest, NotFound
 from models.categoria import Categoria
@@ -10,12 +10,20 @@ class CategoriaService:
     @staticmethod
     def registrar(dados, empresa_id):
 
-        if not dados.get("nome"):
+        if not empresa_id:
+            raise BadRequest("Empresa não identificada no token.")
+
+        if not dados or not dados.get("nome"):
+            raise BadRequest("Nome da categoria é obrigatório.")
+
+        nome = dados["nome"].strip()
+
+        if not nome:
             raise BadRequest("Nome da categoria é obrigatório.")
 
         categoria_existente = Categoria.query.filter_by(
             empresa_id=empresa_id,
-            nome=dados["nome"],
+            nome=nome,
             deletado_em=None
         ).first()
 
@@ -24,12 +32,13 @@ class CategoriaService:
 
         categoria = Categoria(
             empresa_id=empresa_id,
-            nome=dados["nome"]
+            nome=nome
         )
 
         try:
             db.session.add(categoria)
             db.session.commit()
+
             return categoria
 
         except Exception:
@@ -39,28 +48,23 @@ class CategoriaService:
     @staticmethod
     def listar(empresa_id):
 
-        categoria = Categoria.query.filter_by(
-            empresa_id=empresa_id
+        if not empresa_id:
+            raise BadRequest("Empresa não identificada no token.")
+
+        categorias = Categoria.query.filter_by(
+            empresa_id=empresa_id,
+            deletado_em=None
+        ).order_by(
+            Categoria.nome.asc()
         ).all()
 
-        return categoria
-    
+        return categorias
+
     @staticmethod
     def buscar_por_id(categoria_id, empresa_id):
-        categoria = Categoria.query.filter_by(
-            id = categoria_id,
-            empresa_id = empresa_id
-        ).first()
 
-        if not categoria:
-            raise NotFound("Categoria não encontrada.")
-        
-        return categoria
-
-
-
-    @staticmethod
-    def atualizar(categoria_id, dados, empresa_id):
+        if not empresa_id:
+            raise BadRequest("Empresa não identificada no token.")
 
         categoria = Categoria.query.filter_by(
             id=categoria_id,
@@ -71,28 +75,58 @@ class CategoriaService:
         if not categoria:
             raise NotFound("Categoria não encontrada.")
 
-        if not dados.get("nome"):
+        return categoria
+
+    @staticmethod
+    def atualizar(categoria_id, dados, empresa_id):
+
+        if not empresa_id:
+            raise BadRequest("Empresa não identificada no token.")
+
+        categoria = Categoria.query.filter_by(
+            id=categoria_id,
+            empresa_id=empresa_id,
+            deletado_em=None
+        ).first()
+
+        if not categoria:
+            raise NotFound("Categoria não encontrada.")
+
+        if not dados or not dados.get("nome"):
+            raise BadRequest("Nome da categoria é obrigatório.")
+
+        nome = dados["nome"].strip()
+
+        if not nome:
             raise BadRequest("Nome da categoria é obrigatório.")
 
         categoria_existente = Categoria.query.filter(
             Categoria.id != categoria_id,
             Categoria.empresa_id == empresa_id,
-            Categoria.nome == dados["nome"],
+            Categoria.nome == nome,
             Categoria.deletado_em.is_(None)
         ).first()
 
         if categoria_existente:
-            raise BadRequest("Já existe uma categoria com esse nome.")
+            raise BadRequest(
+                "Já existe uma categoria com esse nome."
+            )
 
-        categoria.nome = dados["nome"]
+        categoria.nome = nome
 
-        db.session.commit()
+        try:
+            db.session.commit()
+            return categoria
 
-        return categoria
-        
-    
+        except Exception:
+            db.session.rollback()
+            raise
+
     @staticmethod
     def deletar(categoria_id, empresa_id):
+
+        if not empresa_id:
+            raise BadRequest("Empresa não identificada no token.")
 
         categoria = Categoria.query.filter_by(
             id=categoria_id,
@@ -120,6 +154,10 @@ class CategoriaService:
 
         categoria.deletado_em = datetime.utcnow()
 
-        db.session.commit()
+        try:
+            db.session.commit()
+            return True
 
-        return True
+        except Exception:
+            db.session.rollback()
+            raise

@@ -9,9 +9,7 @@ from models.forma_pagamento import FormaPagamento
 
 class TaxaPagamentoService:
 
-    # ==========================================================
-    # CADASTRAR TAXA
-    # ==========================================================
+  
 
     @staticmethod
     def registrar(dados, empresa_id):
