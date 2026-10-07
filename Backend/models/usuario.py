@@ -10,7 +10,7 @@ class Usuario(db.Model):
     empresa_id = db.Column(
         db.Integer,
         db.ForeignKey("empresas.id"),
-        nullable=False,
+        nullable=True,
         index=True
     )
 

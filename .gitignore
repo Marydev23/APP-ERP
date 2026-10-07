@@ -1,0 +1,74 @@
+# Ambiente virtual
+venv/
+.venv/
+
+# Variáveis de ambiente
+.env
+
+
+# Node
+node_modules/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+
+# Ambiente
+.env
+
+
+*.db
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# PyCharm
+.idea/
+
+
+
+# Logs
+*.log
+logs/
+
+# Arquivos de cobertura de testes
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Build do React/Vite
+dist/
+node_modules/
+
+# Arquivos temporários
+*.tmp
+*.swp
+
+# Flask
+instance/
+
+# Migrations compiladas (mantém apenas o código fonte)
+migrations/__pycache__/
+
+# Cache do Vite
+frontend/node_modules/
+frontend/node_modules/.vite/
